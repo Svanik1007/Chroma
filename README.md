@@ -65,6 +65,18 @@ Use these exact commands if plain `python` selects another Python version.
 Python 3.11 is the tested configuration; the package minimum is 3.10, replacing
 the original proposed 3.9 floor to accommodate current dependencies.
 
+### Moving or renaming the project folder
+
+The application finds the face model relative to `swcf/vision.py`, and the
+Windows launchers use their own folder as the working directory. Spaces in the
+folder name are supported. A folder rename does not require retraining or
+changing the face-landmarker model.
+
+After moving an existing installation, run `repair_environment.bat` once to
+refresh activation scripts and package launchers that may still contain the
+previous absolute virtual-environment path. This requires Python 3.11 and an
+Internet connection. Your downloaded model and session data are preserved.
+
 Linux/macOS: create a virtual environment with Python 3.11, install
 `requirements.txt`, then run the same `main.py` commands with that environment's
 Python. Desktop OpenCV and camera permissions are required. These platforms have

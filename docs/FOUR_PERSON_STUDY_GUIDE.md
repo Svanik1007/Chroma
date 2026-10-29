@@ -141,7 +141,7 @@ The same extraction function also returns quality scores, whose calculation belo
 
 **Your section does not calculate BPM.** It supplies the measurements from which later sections estimate BPM.
 
-The main files are [capture.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/capture.py) and [vision.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/vision.py).
+The main files are [capture.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/capture.py) and [vision.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/vision.py).
 
 ### 1. Opening the webcam
 
@@ -560,7 +560,7 @@ Your responsibility is to answer:
 
 Person 1 supplies the facial RGB measurements. Your section converts them into pulse candidates and combines those candidates according to quality.
 
-The relevant code is in [vision.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/vision.py) and [dsp.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/dsp.py).
+The relevant code is in [vision.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/vision.py) and [dsp.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/dsp.py).
 
 ```text
 Five RGB signals from Person 1
@@ -1112,9 +1112,9 @@ This is the section most directly connected to **Signals and Systems**.
 
 Your main code is in:
 
-- [dsp.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/dsp.py): `bandpass()`, `spectrum()`, and `pulse_intervals()`.
-- [engine.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/engine.py): buffering, update timing, and acquisition state.
-- [config.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/config.py): processing settings.
+- [dsp.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/dsp.py): `bandpass()`, `spectrum()`, and `pulse_intervals()`.
+- [engine.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/engine.py): buffering, update timing, and acquisition state.
+- [config.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/config.py): processing settings.
 
 Your responsibilities overlap with Person 2 at filtering and spectral quality. Person 2 explains **how quality determines weights**; you explain **how filtering and frequency estimation work**.
 
@@ -1687,7 +1687,7 @@ Test behavior and evaluate errors
 
 **1. Starting the application**
 
-The entry point is [main.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/main.py):
+The entry point is [main.py](https://github.com/Svanik1007/SW-CF/blob/main/main.py):
 
 ```python
 from swcf.app import main
@@ -1718,7 +1718,7 @@ For example:
 
 **2. Selecting the operating mode**
 
-In [app.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/app.py), `argparse` reads command-line options.
+In [app.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/app.py), `argparse` reads command-line options.
 
 The main commands are:
 
@@ -1839,7 +1839,7 @@ The current video implementation assumes **constant-frame-rate media with reliab
 
 **5. Rendering the dashboard**
 
-In [dashboard.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/dashboard.py), the main function is:
+In [dashboard.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/dashboard.py), the main function is:
 
 ```python
 render(frame, polygons, quality, state, ...)
@@ -1936,7 +1936,7 @@ A `finally` block is used because cleanup should run when processing finishes or
 
 **7. Saving measurements and results**
 
-The `Recorder` class in [io.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/io.py) creates the output files.
+The `Recorder` class in [io.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/io.py) creates the output files.
 
 | File | Contents |
 |---|---|
@@ -1970,7 +1970,7 @@ The application does **not** record webcam video. Its saved dashboard screenshot
 
 **8. Generating synthetic test signals**
 
-In [synthetic.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/synthetic.py):
+In [synthetic.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/synthetic.py):
 
 ```python
 pulse = np.sin(2*np.pi*bpm/60*t)
@@ -2084,7 +2084,7 @@ Run them with:
 
 **11. Evaluating against UBFC reference data**
 
-The evaluator in [benchmark.py](C:/Users/somas/OneDrive/Documents/ChatGPT/sns/swcf/benchmark.py) expects:
+The evaluator in [benchmark.py](https://github.com/Svanik1007/SW-CF/blob/main/swcf/benchmark.py) expects:
 
 ```text
 subject folder/
@@ -2215,7 +2215,7 @@ Everything is already installed in your project folder on this laptop, so you ca
 Open File Explorer and paste this into its address bar:
 
 ```text
-C:\Users\somas\OneDrive\Documents\ChatGPT\sns
+C:\Users\somas\OneDrive\Documents\Signals and Systems\sns
 ```
 
 You should see files such as `main.py`, `run_demo.bat`, and `run_webcam.bat`.
@@ -2335,7 +2335,7 @@ The filter keeps approximately **0.75â€“2.5 Hz**, corresponding to the projectâ€
 If a launcher closes unexpectedly, open PowerShell and run:
 
 ```powershell
-cd "C:\Users\somas\OneDrive\Documents\ChatGPT\sns"
+cd "C:\Users\somas\OneDrive\Documents\Signals and Systems\sns"
 ```
 
 Check the environment:
