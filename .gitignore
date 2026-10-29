@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+data/
+outputs/
+dist/
+tmp/
+models/*.task
+models/*.download
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db

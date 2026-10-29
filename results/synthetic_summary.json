@@ -1,0 +1,55 @@
+{
+  "evidence_type": "synthetic RGB only; quality labels are supplied oracle annotations",
+  "real_webcam_accuracy": "not measured",
+  "ubfc_accuracy": "not measured",
+  "groups": [
+    {
+      "corrupted": false,
+      "mode": "weighted",
+      "cases": 18,
+      "accepted": 18,
+      "mae_bpm": 0.04245470066122318,
+      "max_error_bpm": 0.16024441650849752
+    },
+    {
+      "corrupted": false,
+      "mode": "equal",
+      "cases": 18,
+      "accepted": 18,
+      "mae_bpm": 0.042442854740309365,
+      "max_error_bpm": 0.15976000081389685
+    },
+    {
+      "corrupted": false,
+      "mode": "green",
+      "cases": 18,
+      "accepted": 18,
+      "mae_bpm": 0.036595102000348274,
+      "max_error_bpm": 0.12660150780160961
+    },
+    {
+      "corrupted": true,
+      "mode": "weighted",
+      "cases": 18,
+      "accepted": 18,
+      "mae_bpm": 0.04224692275950817,
+      "max_error_bpm": 0.115836502296915
+    },
+    {
+      "corrupted": true,
+      "mode": "equal",
+      "cases": 18,
+      "accepted": 18,
+      "mae_bpm": 0.2523525368764498,
+      "max_error_bpm": 0.7203829164277238
+    },
+    {
+      "corrupted": true,
+      "mode": "green",
+      "cases": 18,
+      "accepted": 18,
+      "mae_bpm": 0.2296776986331087,
+      "max_error_bpm": 0.5708196429265797
+    }
+  ]
+}
