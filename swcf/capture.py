@@ -33,11 +33,39 @@ class Camera:
         self.sequence = 0
         self.stopped = False
         self.error = None
+        self.lock_request = False
+        self.lock_result = None
         self.thread = threading.Thread(target=self._capture, daemon=True)
         self.thread.start()
 
+    def request_lock(self):
+        """Ask the capture thread to freeze auto exposure / white balance.
+
+        Auto exposure and white balance make the whole image brighten and
+        change colour while the webcam "hunts", which looks like a slow pulse.
+        Done in the capture thread so cap.set never races cap.read.
+        """
+        self.lock_request = True
+
+    def _apply_lock(self):
+        cap, name = self.cap, self.cap.getBackendName().upper()
+        exposure = cap.get(cv2.CAP_PROP_EXPOSURE)
+        # Manual-mode value differs per backend (DirectShow 0.25, V4L2 1).
+        manual = 1 if name == "V4L2" else 0.25
+        exp_ok = bool(cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, manual))
+        if exp_ok and exposure:
+            cap.set(cv2.CAP_PROP_EXPOSURE, exposure)
+        wb_ok = bool(cap.set(cv2.CAP_PROP_AUTO_WB, 0))
+        self.lock_result = {"auto_exposure_off": exp_ok, "auto_white_balance_off": wb_ok}
+
     def _capture(self):
         while not self.stopped:
+            if self.lock_request:
+                self.lock_request = False
+                try:
+                    self._apply_lock()
+                except cv2.error:
+                    self.lock_result = {"auto_exposure_off": False, "auto_white_balance_off": False}
             ok, frame = self.cap.read()
             stamp = time.perf_counter()
             with self.condition:

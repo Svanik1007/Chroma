@@ -70,16 +70,19 @@ def benchmark(args):
                 data = tracker.extract(frame, t)
                 for e in engines.values():
                     if data is None:
-                        e.reset("No face")
+                        e.face_lost(t)
                     else:
-                        e.push(t, data[0], data[1])
+                        e.push(t, data[0], data[1], data[3])
                 # Fixed evaluation schedule includes missing/rejected predictions.
                 if t >= next_eval - 1e-6:
-                    ref = reference_bpm(gt_t, gt_bpm, t-cfg.window, t)
                     for mode, e in engines.items():
                         a = e.state.analysis
                         fresh = a is not None and t-e.last_update <= cfg.update + 1/fps
-                        pred = a.bpm if fresh else None
+                        # Score what the user sees: the smoothed value, only when
+                        # the latest window was accepted (held values are not counted).
+                        pred = e.state.bpm_display if fresh and a.bpm is not None else None
+                        span = a.window_s if fresh else cfg.window
+                        ref = reference_bpm(gt_t, gt_bpm, t-span, t)
                         subject_rows.append({"subject": subject, "mode": mode, "end_s": t,
                             "prediction_bpm": pred, "reference_bpm": ref,
                             "quality": a.quality if fresh else None})
@@ -106,7 +109,7 @@ def benchmark(args):
         writer.writeheader(); writer.writerows(rows)
     summary = {"dataset": "UBFC-rPPG Dataset 2", "attempted_subjects":len(videos),
                "completed_subjects":len(videos)-len(failures), "failures":failures,
-               "reference": "Mean provided oximeter BPM over the same trailing 6-second window",
+               "reference": "Mean provided oximeter BPM over the same trailing analysis window (6-12 s)",
                "timing": "Constant FPS video time; ground-truth first timestamp subtracted; no optimized lag",
                "modes": {m: metrics([r for r in rows if r["mode"]==m]) for m in dict.fromkeys(args.modes)},
                "subjects": subject_results, "config": vars(cfg)}

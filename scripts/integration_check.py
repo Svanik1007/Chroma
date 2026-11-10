@@ -25,23 +25,37 @@ def main():
     try:
         data = tracker.extract(frame, 0)
         assert data is not None, "Public portrait face was not detected"
-        rgb,q,polygons = data
+        rgb,q,polygons,bg = data
+        assert bg is not None, "No background reference area beside the face"
         assert np.min(q) > .5, f"Bad polygon geometry/quality: {q}"
         overlay = frame.copy()
         for i,poly in enumerate(polygons):
             cv2.polylines(overlay,[poly],True,(60,230,220),1)
             cv2.putText(overlay,str(i+1),tuple(poly.mean(axis=0).astype(int)),cv2.FONT_HERSHEY_SIMPLEX,.45,(0,0,255),1)
         cv2.imwrite(str(folder/"regions.png"),overlay)
-        writer = cv2.VideoWriter(str(folder/"modulated_still.avi"),cv2.VideoWriter_fourcc(*"FFV1"),30,(frame.shape[1],480))
-        if not writer.isOpened():
+        # Skin-only modulation: a face-shaped mask around the five regions.
+        hull = cv2.convexHull(np.vstack(polygons).astype(np.int32))
+        centre = hull.reshape(-1, 2).mean(axis=0)
+        hull = (centre + 1.4*(hull.reshape(-1, 2) - centre)).astype(np.int32)
+        skin = np.zeros(frame.shape[:2], np.uint8)
+        cv2.fillConvexPoly(skin, hull, 1)
+        skin = skin[:, :, None].astype(float)
+        size = (frame.shape[1], 480)
+        face_only = cv2.VideoWriter(str(folder/"modulated_still.avi"), cv2.VideoWriter_fourcc(*"FFV1"), 30, size)
+        whole = cv2.VideoWriter(str(folder/"modulated_whole_frame.avi"), cv2.VideoWriter_fourcc(*"FFV1"), 30, size)
+        if not face_only.isOpened() or not whole.isOpened():
             raise RuntimeError("FFV1 video writer unavailable")
         for i in range(300):
-            # Artificial pulse added to EVERY pixel, including background.
-            # This validates wiring/timing, not actual remote physiology.
+            # Artificial 72 BPM colour change (BGR order). This validates
+            # wiring/timing, not actual remote physiology.
             modulation = np.sin(2*np.pi*1.2*i/30)*np.array([.18,.65,.10])
-            writer.write(np.clip(np.rint(frame.astype(float)+modulation),0,255).astype(np.uint8))
-        writer.release()
-        print("Face polygons and artificial 72 BPM still-image video created in",folder)
+            face_only.write(np.clip(np.rint(frame.astype(float)+skin*modulation),0,255).astype(np.uint8))
+            # Same change on every pixel = scene lighting, not a pulse: the
+            # background reference should cancel it.
+            whole.write(np.clip(np.rint(frame.astype(float)+modulation),0,255).astype(np.uint8))
+        face_only.release(); whole.release()
+        print("Face polygons and artificial 72 BPM still-image videos created in",folder)
+        print("modulated_still.avi: skin only (expect ~72 BPM); modulated_whole_frame.avi: whole scene (expect rejection)")
         print("This is synthetic integration evidence, not a webcam accuracy test.")
     finally:
         tracker.close()

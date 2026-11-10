@@ -3,7 +3,17 @@ import numpy as np
 import cv2
 
 
-def generate(duration=70, fps=30, bpm=72, seed=7, corrupted=True, jitter=False):
+def generate(duration=70, fps=30, bpm=72, seed=7, corrupted=True, jitter=False,
+             motion_bursts=(), flicker_hz=None, flicker_amp=.006, noise=.045,
+             return_background=False):
+    """Artificial RGB for 5 patches (+ optional background reference).
+
+    motion_bursts: [(start_s, duration_s), ...] - quality drops to 0.05, the
+        patches get large noise during the burst and a lasting level shift
+        (the patch lands on slightly different skin), like a real head nod.
+    flicker_hz: a coloured illumination flicker common to the whole scene
+        (patches and background), like tube lights or auto-exposure hunting.
+    """
     rng = np.random.default_rng(seed)
     t = np.arange(round(duration * fps)) / fps
     if jitter:
@@ -12,9 +22,14 @@ def generate(duration=70, fps=30, bpm=72, seed=7, corrupted=True, jitter=False):
     # Skin DC levels and <1% pulsatile changes; common illumination drift.
     base = np.array([[177, 132, 109], [170, 127, 104], [180, 136, 113],
                      [185, 140, 118], [162, 120, 100]], float)
-    rgb = base[None, :, :] * (1 + .025*np.sin(2*np.pi*.18*t))[:, None, None]
+    light = (1 + .025*np.sin(2*np.pi*.18*t))[:, None]
+    if flicker_hz:
+        # Green-heavy colour change (like fluorescent tubes) that looks like the pulse colour
+        # change, so POS alone cannot separate it from the pulse.
+        light = light * (1 + flicker_amp*np.sin(2*np.pi*flicker_hz*t)[:, None]*[.2, 1.0, .1])
+    rgb = base[None, :, :] * light[:, None, :]
     rgb += pulse[:, None, None] * np.array([.10, .65, .18])[None, None, :]
-    rgb += rng.normal(0, .045, rgb.shape)
+    rgb += rng.normal(0, noise, rgb.shape)
     quality = np.full((len(t), 5), .95)
     if corrupted:
         # Two deliberately corrupted patches; quality is an oracle annotation
@@ -23,7 +38,16 @@ def generate(duration=70, fps=30, bpm=72, seed=7, corrupted=True, jitter=False):
         rgb[:, 4] += rng.normal(0, 1.5, (len(t), 3))
         quality[:, 3] = .08
         quality[:, 4] = .12
-    return t, rgb, quality
+    for start, length in motion_bursts:
+        during = (t >= start) & (t < start + length)
+        rgb[during] += rng.normal(0, 4, (during.sum(), 5, 3))
+        rgb[t >= start + length] += rng.normal(0, 1.5, (5, 3))
+        quality[during] = .05
+    if not return_background:
+        return t, rgb, quality
+    background = np.array([96, 104, 110], float)[None, :] * light
+    background += rng.normal(0, noise, background.shape)
+    return t, rgb, quality, background
 
 
 def demo_frame(rgb, quality):

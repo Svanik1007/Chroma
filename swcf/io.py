@@ -15,7 +15,8 @@ class Recorder:
         self.raw.writerow(["time_s"] + [f"p{p}_{c}" for p in range(5) for c in ("r","g","b")]
                           + [f"p{p}_quality" for p in range(5)])
         self.est.writerow(["time_s", "bpm", "quality", "spectral_concentration", "fs_hz", "sdnn_proxy_ms"]
-                              + [f"p{p}_weight" for p in range(5)])
+                          + [f"p{p}_weight" for p in range(5)]
+                          + ["bpm_display", "held", "window_s", "background_used"])
 
     def sample(self, t, rgb, quality):
         self.raw.writerow([t, *np.asarray(rgb).ravel(), *quality])
@@ -24,7 +25,8 @@ class Recorder:
         a = state.analysis
         if a is not None:
             self.est.writerow([state.timestamp, a.bpm, a.quality, a.concentration, a.fs,
-                               state.hrv["sdnn_ms"] if state.hrv else None, *a.weights])
+                               state.hrv["sdnn_ms"] if state.hrv else None, *a.weights,
+                               state.bpm_display, int(state.held), a.window_s, int(a.background_used)])
 
     def close(self, state, metadata):
         self.raw_file.close(); self.est_file.close()
@@ -32,5 +34,6 @@ class Recorder:
         if a is not None:
             np.savetxt(self.folder/"last_pulse.csv", np.column_stack([a.times,a.pulse]),
                        delimiter=",", header="time_s,pulse_normalized", comments="")
-        metadata.update(status=state.status, last_bpm=a.bpm if a else None, hrv=state.hrv)
+        metadata.update(status=state.status, last_bpm=a.bpm if a else None,
+                        last_bpm_display=state.bpm_display, hrv=state.hrv)
         (self.folder/"session.json").write_text(json.dumps(metadata, indent=2, allow_nan=False), encoding="utf-8")

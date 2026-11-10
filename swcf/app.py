@@ -39,6 +39,8 @@ def parser():
             s.add_argument("--width", type=int, default=640)
             s.add_argument("--height", type=int, default=480)
             s.add_argument("--backend", choices=["auto","dshow","msmf","v4l2","any"], default="auto")
+            s.add_argument("--no-lock", action="store_true",
+                           help="Do not try to freeze auto exposure / white balance after 2 s")
     b = sub.add_parser("benchmark", help="Evaluate local UBFC-rPPG subject folders")
     b.add_argument("root", type=Path)
     b.add_argument("--output", type=Path, default=Path("outputs/ubfc"))
@@ -59,7 +61,7 @@ def doctor():
 
 
 def run(args):
-    cfg = Config(window=args.window)
+    cfg = Config(window=args.window, window_max=max(Config.window_max, args.window))
     engine = Engine(cfg, mode=args.mode)
     out = args.output or Path("outputs") / (args.command + "_" + datetime.now().strftime("%Y%m%d_%H%M%S"))
     recorder = Recorder(out)
@@ -100,12 +102,14 @@ def run(args):
                     break
                 t, rgb, q = stamps[index], colors[index], qualities[index]
                 frame, polygons = demo_frame(rgb, q)
-                extracted = (rgb, q, polygons)
+                extracted = (rgb, q, polygons, None)
             elif camera:
                 seq, stamp, frame = camera.read(seq)
                 if origin is None:
                     origin = stamp
                 t = stamp - origin
+                if t > 2 and not args.no_lock and camera.lock_result is None and not camera.lock_request:
+                    camera.request_lock()
                 extracted = tracker.extract(frame, t)
             else:
                 ok, next_frame = video.read()
@@ -119,17 +123,18 @@ def run(args):
                 break
             updated = False
             if extracted is None:
-                engine.reset("No face - center your face and improve lighting")
+                engine.face_lost(t)
                 polygons, q = [], [0]*5
             else:
-                rgb, q, polygons = extracted
+                rgb, q, polygons, bg = extracted
                 recorder.sample(t, rgb, q)
-                updated = engine.push(t, rgb, q)
+                updated = engine.push(t, rgb, q, bg)
                 if updated:
                     recorder.estimate(engine.state)
             # Headless processing renders only at output updates, saving CPU.
             if not args.headless or updated or image is None:
-                image = render(frame, polygons, q, engine.state, args.command == "demo", getattr(args,"bpm",72))
+                image = render(frame, polygons, q, engine.state, args.command == "demo", getattr(args,"bpm",72),
+                               tracker.bg_rect if tracker else None)
             if not args.headless:
                 cv2.imshow("SW-CF", image)
                 key = cv2.waitKey(1) & 255
@@ -146,11 +151,16 @@ def run(args):
         meta.update(processed_frames=index, processing_wall_seconds=time.perf_counter()-started)
         # Always render the final state, including face loss/quality rejection.
         if index:
-            image = render(frame, polygons, q, engine.state, args.command == "demo", getattr(args,"bpm",72))
+            image = render(frame, polygons, q, engine.state, args.command == "demo", getattr(args,"bpm",72),
+                           tracker.bg_rect if tracker else None)
+        if camera and camera.lock_result is not None:
+            meta.update(camera_lock=camera.lock_result)
+            print(f"Camera lock: {camera.lock_result}")
         if image is not None:
             cv2.imwrite(str(out / "dashboard.png"), image)
         a = engine.state.analysis
-        print(f"Final status: {engine.state.status}; BPM: {a.bpm if a else None}")
+        shown = engine.state.bpm_display
+        print(f"Final status: {engine.state.status}; BPM: {round(shown, 1) if shown else None}")
         print(f"Experimental SDNN proxy: {engine.state.hrv['sdnn_ms'] if engine.state.hrv else 'unavailable'}")
     finally:
         if camera:

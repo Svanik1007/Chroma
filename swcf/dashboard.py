@@ -38,7 +38,7 @@ def plot(img, values, rect, color=CYAN, xvalues=None, xrange=None):
     cv2.polylines(img, [pts], False, color, 2, cv2.LINE_AA)
 
 
-def render(frame, polygons, quality, state, simulated=False, target_bpm=72):
+def render(frame, polygons, quality, state, simulated=False, target_bpm=72, bg_rect=None):
     img = np.full((820, 1280, 3), BG, np.uint8)
     text(img, "SW-CF", (30, 47), 1.15, CYAN, 2)
     text(img, "SPATIALLY-WEIGHTED CHROMINANCE FUSION", (190,42), .68)
@@ -46,6 +46,10 @@ def render(frame, polygons, quality, state, simulated=False, target_bpm=72):
     tag = f"SIMULATION  |  target {target_bpm:g} BPM" if simulated else "LIVE / VIDEO  |  LOCAL PROCESSING"
     text(img, tag, (825,48), .52, ORANGE)
     view = frame.copy()
+    if bg_rect is not None:
+        x0, y0, x1, y1 = bg_rect
+        cv2.rectangle(view, (x0, y0), (x1, y1), MUTED, 1)
+        text(view, "BG", (x0 + 3, y0 - 5), .4, MUTED)
     for p, poly in enumerate(polygons):
         color = CYAN if quality[p] >= .4 else ORANGE
         cv2.polylines(view, [poly], True, color, 2)
@@ -55,10 +59,13 @@ def render(frame, polygons, quality, state, simulated=False, target_bpm=72):
     a = state.analysis
     cv2.rectangle(img, (695,105), (1250,282), PANEL, -1)
     text(img, "HEART RATE", (717,136), .53, MUTED)
-    bpm = f"{a.bpm:.1f}" if a is not None and a.bpm is not None else "--"
-    text(img, bpm, (712,213), 2.1, WHITE, 3)
-    text(img, "BPM", (930,211), .8, CYAN)
-    measured = f"{a.fs:.1f} Hz" if a is not None else "acquiring"
+    shown = state.bpm_display
+    bpm = f"{shown:.0f}" if shown is not None else "--"
+    text(img, bpm, (712,213), 2.1, MUTED if state.held else WHITE, 3)
+    text(img, "BPM", (880,211), .8, CYAN)
+    if state.held:
+        text(img, "holding last value", (980,211), .5, ORANGE)
+    measured = f"{a.fs:.1f} Hz  |  window {state.window_s:.1f} s" if a is not None else "acquiring"
     text(img, f"Sample rate: {measured}", (717,254), .5, MUTED)
     text(img, "REGION FUSION WEIGHTS", (711,317), .53)
     for p, name in enumerate(PATCH_NAMES):
@@ -76,7 +83,8 @@ def render(frame, polygons, quality, state, simulated=False, target_bpm=72):
     text(img, "WELCH PSD  /  45 - 150 BPM", (835,618), .48)
     plot(img, a.power if a else None, (835,632,415,122), ORANGE,
          a.frequencies*60 if a else None, (45,150))
-    text(img, state.status, (30,784), .57, CYAN if a and a.bpm else ORANGE)
+    text(img, f"{state.status}   [t = {state.timestamp:.0f} s]", (30,784), .57,
+         CYAN if a and a.bpm else ORANGE)
     text(img, "Q / Esc: quit   R: reset   S: screenshot", (835,784), .43, MUTED)
     text(img, "Educational estimates. SDNN proxy is not a validated stress score.", (30,809), .40, MUTED)
     return img
